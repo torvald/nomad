@@ -1,0 +1,56 @@
+- name: Update apt and install docker.io
+  apt: update_cache=yes name=docker.io state=latest
+
+- name: Ensure nomad user exists
+  user:
+    name: nomad
+    append: true
+    groups: docker
+
+- name: Add nomad repo key
+  apt_key:
+    url: https://apt.releases.hashicorp.com/gpg
+    state: present
+
+- name: Add nomad repo
+  apt_repository:
+    repo: "deb [arch=amd64] https://apt.releases.hashicorp.com buster main"
+    state: present
+
+- name: Update apt and install consul
+  apt:
+    update_cache: true
+    name: consul=1.10.1
+    state: present
+
+- name: Update apt and install nomad
+  apt:
+    update_cache: true
+    name: nomad=1.1.3
+    state: present
+
+- name: Copy consul.service file
+  ansible.builtin.copy:
+    src: consul.service
+    dest: /usr/lib/systemd/system/consul.service
+
+- name: Enable consul service and ensure it is enabled and not masked
+  ansible.builtin.systemd:
+    name: consul
+    enabled: true
+    masked: false
+    daemon_reload: true
+    state: started
+
+- name: Copy nomad.service file
+  ansible.builtin.copy:
+    src: nomad.service
+    dest: /usr/lib/systemd/system/nomad.service
+
+- name: Enable nomad service and ensure it is enabled and not masked
+  ansible.builtin.systemd:
+    name: nomad
+    enabled: true
+    masked: false
+    daemon_reload: true
+    state: started

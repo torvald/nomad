@@ -1,11 +1,17 @@
 - name: Update apt and install docker.io
   apt: update_cache=yes name=docker.io state=latest
 
+- name: Ensure /opt/nomad/nomad.d/ exists
+  file:
+    path: /opt/nomad/nomad.d/
+    state: directory
+
 - name: Ensure nomad user exists
   user:
     name: nomad
     append: true
     groups: docker
+    # home: /opt/nomad/nomad.d/
 
 - name: Add nomad repo key
   apt_key:
@@ -30,11 +36,13 @@
     state: present
 
 - name: Copy consul.service file
+  tags: systemd
   ansible.builtin.copy:
     src: consul.service
     dest: /usr/lib/systemd/system/consul.service
 
 - name: Enable consul service and ensure it is enabled and not masked
+  tags: systemd
   ansible.builtin.systemd:
     name: consul
     enabled: true
@@ -43,14 +51,26 @@
     state: started
 
 - name: Copy nomad.service file
+  tags: systemd
   ansible.builtin.copy:
     src: nomad.service
     dest: /usr/lib/systemd/system/nomad.service
 
 - name: Enable nomad service and ensure it is enabled and not masked
+  tags: systemd
   ansible.builtin.systemd:
     name: nomad
     enabled: true
     masked: false
     daemon_reload: true
     state: started
+
+- name: Copy nomad config
+  tags: config
+  ansible.builtin.copy:
+    src: "{{item}}"
+    dest: "/opt/nomad/nomad.d/{{item}}"
+  with_items:
+    - server.hcl
+    - client.hcl
+    - plugin.hcl
